@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  
+  /* Modern Government Command Center Theme Palette */
+  --color-slate-950: #0b0f19;
+  --color-slate-900: #111827;
+  --color-slate-800: #1f2937;
+  --color-slate-700: #374151;
+  
+  --color-accent-blue: #3b82f6;
+  --color-accent-teal: #14b8a6;
+  --color-accent-emerald: #10b981;
+  --color-accent-amber: #f59e0b;
+  --color-accent-rose: #f43f5e;
+  --color-accent-violet: #8b5cf6;
+}
+
+/* Custom Base Styles */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-slate-950);
+  color: #f3f4f6;
+  font-family: var(--font-sans);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+  background: #111827 !important;
+}
+.leaflet-bar {
+  border: 1px solid #232d42 !important;
+  box-shadow: none !important;
+}
+.leaflet-bar a {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  border-bottom: 1px solid #232d42 !important;
+}
+.leaflet-bar a:hover {
+  background-color: #374151 !important;
+}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #111827 !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #1f2937;
+}
