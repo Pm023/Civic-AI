@@ -139,7 +139,6 @@ class OfficerCreate(BaseModel):
     full_name: str
     password: str
     department_id: int
-    badge_number: str
 
 class OfficerUpdate(BaseModel):
     full_name: Optional[str] = None

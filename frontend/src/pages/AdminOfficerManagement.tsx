@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  Filter, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Edit3, 
-  Trash2, 
-  CheckCircle2, 
-  XCircle, 
-  Building2, 
-  Badge, 
-  X, 
-  Lock, 
-  Mail, 
-  User, 
+import {
+  Users,
+  UserPlus,
+  Search,
+  Filter,
+  ShieldCheck,
+  ShieldAlert,
+  Edit3,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Building2,
+  Badge,
+  X,
+  Lock,
+  Mail,
+  User,
   RefreshCw,
   Power
 } from 'lucide-react';
@@ -42,7 +42,7 @@ interface OfficerDetail {
 
 export const AdminOfficerManagement: React.FC = () => {
   const { token, user } = useAuth();
-  
+
   const [officers, setOfficers] = useState<OfficerDetail[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,7 +193,6 @@ export const AdminOfficerManagement: React.FC = () => {
             full_name: formData.full_name,
             password: formData.password,
             department_id: Number(formData.department_id),
-            badge_number: formData.badge_number,
           })
         });
 
@@ -259,16 +258,16 @@ export const AdminOfficerManagement: React.FC = () => {
 
   // Filtered officers list
   const filteredOfficers = officers.filter(officer => {
-    const matchesSearch = 
+    const matchesSearch =
       officer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       officer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       officer.badge_number.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesDept = 
-      selectedDeptFilter === 'all' || 
+    const matchesDept =
+      selectedDeptFilter === 'all' ||
       officer.department_id.toString() === selectedDeptFilter;
 
-    const matchesStatus = 
+    const matchesStatus =
       selectedStatusFilter === 'all' ||
       (selectedStatusFilter === 'active' && officer.is_active) ||
       (selectedStatusFilter === 'inactive' && !officer.is_active);
@@ -457,8 +456,8 @@ export const AdminOfficerManagement: React.FC = () => {
                 </tr>
               ) : (
                 filteredOfficers.map((officer) => (
-                  <tr 
-                    key={officer.id} 
+                  <tr
+                    key={officer.id}
                     className="hover:bg-slate-800/40 transition-colors"
                   >
                     {/* Name & Email */}
@@ -519,11 +518,10 @@ export const AdminOfficerManagement: React.FC = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleToggleStatus(officer)}
-                          className={`p-1.5 rounded-lg border transition-all ${
-                            officer.is_active 
-                              ? 'text-amber-400 border-amber-500/20 hover:bg-amber-500/10' 
+                          className={`p-1.5 rounded-lg border transition-all ${officer.is_active
+                              ? 'text-amber-400 border-amber-500/20 hover:bg-amber-500/10'
                               : 'text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10'
-                          }`}
+                            }`}
                           title={officer.is_active ? 'Deactivate Account' : 'Activate Account'}
                         >
                           <Power className="h-4 w-4" />
@@ -567,7 +565,7 @@ export const AdminOfficerManagement: React.FC = () => {
                   {editingOfficer ? 'Edit Officer Profile' : 'Provision New Officer'}
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsAddModalOpen(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all"
               >
@@ -609,7 +607,7 @@ export const AdminOfficerManagement: React.FC = () => {
               </div>
 
               {/* Badge Number */}
-              <div>
+              {/*<div>
                 <label className="text-xs font-semibold text-slate-400 mb-1 block">Badge Number</label>
                 <div className="relative">
                   <Badge className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
@@ -622,6 +620,17 @@ export const AdminOfficerManagement: React.FC = () => {
                     placeholder="BDG-1092"
                   />
                 </div>
+                </div>*/}
+              <div>
+                <label className="text-xs font-semibold text-slate-400 mb-1 block">
+                  Badge Number
+                </label>
+
+                <input
+                  disabled
+                  value="Auto Generated"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-400"
+                />
               </div>
 
               {/* Department Dropdown */}
@@ -668,14 +677,12 @@ export const AdminOfficerManagement: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      formData.is_active ? 'bg-emerald-500' : 'bg-slate-700'
-                    }`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_active ? 'bg-emerald-500' : 'bg-slate-700'
+                      }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.is_active ? 'translate-x-6' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                 </div>

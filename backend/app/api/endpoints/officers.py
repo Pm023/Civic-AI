@@ -49,12 +49,12 @@ def create_officer(
         )
     
     # Validate unique badge number
-    existing_badge = db.query(Officer).filter(Officer.badge_number == officer_in.badge_number).first()
-    if existing_badge:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An officer with this badge number already exists.",
-        )
+    # existing_badge = db.query(Officer).filter(Officer.badge_number == officer_in.badge_number).first()
+    # if existing_badge:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="An officer with this badge number already exists.",
+    #     )
     
     # Validate department exists
     dept = db.query(Department).filter(Department.id == officer_in.department_id).first()
@@ -64,6 +64,16 @@ def create_officer(
             detail="The specified department was not found.",
         )
     
+    # Generate next badge number automatically
+    last_officer = (
+        db.query(Officer)
+        .order_by(Officer.id.desc())
+        .first()
+    )
+
+    next_id = 1 if last_officer is None else last_officer.id + 1
+
+    badge_number = f"PW-{next_id:03d}"
     hashed_password = get_password_hash(officer_in.password)
     db_user = User(
         email=officer_in.email,
@@ -76,10 +86,24 @@ def create_officer(
     db.commit()
     db.refresh(db_user)
     
+    # Generate next badge number automatically
+    last_officer = (
+        db.query(Officer)
+        .order_by(Officer.id.desc())
+        .first()
+    )
+
+    if last_officer:
+        next_number = last_officer.id + 1
+    else:
+        next_number = 1
+
+    badge_number = f"OFC-{next_number:04d}"
+
     db_officer = Officer(
         user_id=db_user.id,
         department_id=officer_in.department_id,
-        badge_number=officer_in.badge_number,
+        badge_number=badge_number,
     )
     db.add(db_officer)
     db.commit()
@@ -141,12 +165,12 @@ def update_officer(
         user.password_hash = get_password_hash(officer_in.password)
 
     if officer_in.badge_number is not None and officer_in.badge_number != officer.badge_number:
-        existing_badge = db.query(Officer).filter(Officer.badge_number == officer_in.badge_number).first()
-        if existing_badge:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="An officer with this badge number already exists.",
-            )
+        # existing_badge = db.query(Officer).filter(Officer.badge_number == officer_in.badge_number).first()
+        # if existing_badge:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail="An officer with this badge number already exists.",
+        #     )
         officer.badge_number = officer_in.badge_number
 
     if officer_in.department_id is not None:
