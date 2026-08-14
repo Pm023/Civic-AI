@@ -1,3 +1,6 @@
+import io
+from PIL import Image
+
 def test_read_root(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -39,6 +42,20 @@ def test_auth_and_report_flow(client):
     assert len(dept_response.json()) >= 5
     assert dept_response.json()[0]["name"] == "Public Works"
 
+    # Generate a valid 224x224 test image using Pillow and upload
+    img = Image.new("RGB", (224, 224), color="blue")
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="JPEG")
+    img_bytes = img_byte_arr.getvalue()
+    files = {"file": ("test_pothole_main.jpg", img_bytes, "image/jpeg")}
+    upload_response = client.post(
+        "/api/v1/reports/upload",
+        headers=headers,
+        files=files
+    )
+    assert upload_response.status_code == 200
+    image_url = upload_response.json()["image_url"]
+
     # 4. Submit a report
     report_response = client.post(
         "/api/v1/reports",
@@ -47,7 +64,8 @@ def test_auth_and_report_flow(client):
             "description": "Large pothole in the middle of Main St.",
             "latitude": 47.6062,
             "longitude": -122.3321,
-            "category": "pothole"
+            "category": "pothole",
+            "image_url": image_url
         }
     )
     assert report_response.status_code == 201

@@ -6,6 +6,10 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
 from app.main import app
 from app.models.models import Department
+from app.config import settings
+
+# Force MOCK_AI to True during tests
+settings.MOCK_AI = True
 
 # In-memory SQLite DB URL
 SQLALCHEMY_DATABASE_URL = "sqlite://"

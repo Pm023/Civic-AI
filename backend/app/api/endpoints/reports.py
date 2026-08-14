@@ -59,19 +59,25 @@ def create_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # 1. Enforce that image_url is mandatory
+    if not report_in.image_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Application rejected: An image upload is required to submit a complaint. Please upload a clear photo of the issue."
+        )
+
     ticket_id = generate_ticket_id()
     
     # Check if there is an image, load it to get prediction
     image_bytes = None
-    if report_in.image_url:
-        filename = os.path.basename(report_in.image_url)
-        local_path = os.path.join(settings.UPLOAD_DIR, filename)
-        if os.path.exists(local_path):
-            try:
-                with open(local_path, "rb") as f:
-                    image_bytes = f.read()
-            except Exception:
-                pass
+    filename = os.path.basename(report_in.image_url)
+    local_path = os.path.join(settings.UPLOAD_DIR, filename)
+    if os.path.exists(local_path):
+        try:
+            with open(local_path, "rb") as f:
+                image_bytes = f.read()
+        except Exception:
+            pass
 
     # Call AI verification service
     ai_res = ai_service.verify_complaint(
@@ -80,6 +86,22 @@ def create_report(
         longitude=report_in.longitude,
         image_bytes=image_bytes
     )
+
+    # 2. Check if image prediction class matches dataset and has confidence >= 70%
+    image_category = ai_res.get("image_prediction")
+    image_confidence = ai_res.get("image_confidence", 0.0)
+    valid_categories = ['garbage', 'pothole', 'road_damage', 'road_sign', 'vandalism']
+    
+    if not image_category or image_category not in valid_categories or image_confidence < 0.70:
+        confidence_pct = image_confidence * 100
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Application rejected: Uploaded image is not recognized as a valid civic issue or "
+                f"classification confidence ({confidence_pct:.1f}%) is below the required 70% threshold. "
+                "Please upload a clear image of garbage, pothole, road damage, road sign, or vandalism."
+            )
+        )
 
     db_report = Report(
         ticket_id=ticket_id,

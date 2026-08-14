@@ -169,6 +169,12 @@ export const Report: React.FC = () => {
     e.preventDefault();
     if (!token) return;
     setError('');
+
+    if (!file) {
+      setError("Application rejected: An image upload is required to submit a complaint. Please select a photo.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -231,7 +237,7 @@ export const Report: React.FC = () => {
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
         <h1 className="text-2xl font-bold text-white mb-2">Submit Civic Complaint</h1>
         <p className="text-sm text-slate-400 mb-8">
-          Upload an optional photo, describe the issue, and pin its location. AI will classify and route it.
+          Upload a required photo, describe the issue, and pin its location. AI will classify and route it.
         </p>
 
         {error && (
@@ -243,7 +249,7 @@ export const Report: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Uploader */}
           <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block">Upload Photo (Optional)</label>
+            <label className="text-xs font-semibold text-slate-400 mb-2 block">Upload Photo (Required)</label>
             <input
               type="file"
               ref={fileInputRef}

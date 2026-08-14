@@ -79,8 +79,8 @@ class AIService:
     def predict_image(self, image_bytes: bytes) -> Tuple[str, float]:
         """Runs image prediction using the PyTorch EfficientNet-B0 model."""
         if settings.MOCK_AI or not self._initialized:
-            logger.info("AI Service not initialized or MOCK_AI active. Skipping image inference.")
-            return "other", 0.0
+            logger.info("AI Service not initialized or MOCK_AI active. Simulating mock image prediction.")
+            return "pothole", 0.85
 
         try:
             _import_ml_libraries()
@@ -155,7 +155,7 @@ class AIService:
         image_confidence = 0.0
         
         # 2. Run image inference if image bytes are provided
-        if image_bytes and self._initialized:
+        if image_bytes and (self._initialized or settings.MOCK_AI):
             image_prediction, image_confidence = self.predict_image(image_bytes)
             
         # 3. Run text inference
@@ -231,6 +231,7 @@ class AIService:
             "keywords": keywords,
             "location_context": location_context,
             "image_prediction": image_prediction,
+            "image_confidence": image_confidence,
             "text_prediction": text_prediction,
             "department": department,
             "sla_hours": sla_hours
