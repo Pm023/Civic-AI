@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "supersecretcivicaikeyforjwttokengeneration123!"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
+
+    # Admin Initial Configuration
+    ADMIN_EMAIL: str = "admin@civicai.gov"
+    ADMIN_PASSWORD: str = "Admin@CivicAI2026!"
+    ADMIN_FULL_NAME: str = "System Admin"
     
     # Uploads
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")

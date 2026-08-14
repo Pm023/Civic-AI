@@ -30,14 +30,29 @@ def get_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive",
+        )
     return user
 
 def get_current_officer(
     current_user: User = Depends(get_current_user)
 ) -> User:
-    if current_user.role != "officer":
+    if current_user.role not in ["officer", "admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have officer privileges",
+        )
+    return current_user
+
+def get_current_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have admin privileges",
         )
     return current_user

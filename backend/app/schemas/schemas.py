@@ -17,6 +17,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    is_active: bool = True
     created_at: datetime
 
     class Config:
@@ -129,6 +130,36 @@ class OfficerResponse(BaseModel):
     department_id: int
     badge_number: str
     full_name: str
+
+    class Config:
+        from_attributes = True
+
+class OfficerCreate(BaseModel):
+    email: EmailStr
+    full_name: str
+    password: str
+    department_id: int
+    badge_number: str
+
+class OfficerUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    department_id: Optional[int] = None
+    badge_number: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+
+class OfficerDetailResponse(BaseModel):
+    id: int
+    user_id: int
+    email: EmailStr
+    full_name: str
+    role: str
+    department_id: int
+    department_name: Optional[str] = None
+    badge_number: str
+    is_active: bool
+    created_at: datetime
 
     class Config:
         from_attributes = True

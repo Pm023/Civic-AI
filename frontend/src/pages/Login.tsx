@@ -29,23 +29,39 @@ export const Login: React.FC = () => {
         throw new Error(data.detail || 'Login failed.');
       }
 
-      // Fetch user profile info
-      await fetch('/api/v1/reports', {
-        headers: { 'Authorization': `Bearer ${data.access_token}` }
-      });
-      
-      // Decode user role from JWT token payload (standard fallback)
+      // Decode user role from JWT token payload
       const tokenParts = data.access_token.split('.');
       const payload = JSON.parse(atob(tokenParts[1]));
 
-      login(data.access_token, {
+      let userData = {
         id: parseInt(payload.sub),
         email: payload.email,
-        full_name: payload.email.split('@')[0], // placeholder name
-        role: payload.role,
-      });
+        full_name: payload.full_name || payload.email.split('@')[0],
+        role: payload.role as 'citizen' | 'officer' | 'admin',
+      };
 
-      if (payload.role === 'officer') {
+      try {
+        const meRes = await fetch('/api/v1/auth/me', {
+          headers: { 'Authorization': `Bearer ${data.access_token}` }
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          userData = {
+            id: meData.id,
+            email: meData.email,
+            full_name: meData.full_name,
+            role: meData.role,
+          };
+        }
+      } catch (e) {
+        // fallback to token payload
+      }
+
+      login(data.access_token, userData);
+
+      if (userData.role === 'admin') {
+        navigate('/admin/officers');
+      } else if (userData.role === 'officer') {
         navigate('/officer/cases');
       } else {
         navigate('/report');

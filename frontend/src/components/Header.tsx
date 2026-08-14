@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, FileText, BarChart2, CheckSquare, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Shield, FileText, BarChart2, CheckSquare, LogOut, LogIn, UserPlus, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -61,6 +61,19 @@ export const Header: React.FC = () => {
                 <CheckSquare className="h-4 w-4" />
                 Officer Dashboard
               </Link>
+            )}
+
+            {isAuthenticated && user?.role === 'admin' && (
+              <>
+                <Link to="/admin/officers" className={navClass('/admin/officers')}>
+                  <Users className="h-4 w-4" />
+                  Officer Management
+                </Link>
+                <Link to="/officer/cases" className={navClass('/officer/cases')}>
+                  <CheckSquare className="h-4 w-4" />
+                  Dispatch Console
+                </Link>
+              </>
             )}
           </nav>
 

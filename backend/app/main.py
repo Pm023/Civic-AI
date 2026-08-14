@@ -4,14 +4,28 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import engine, SessionLocal, Base
 from app.api.api import api_router
-from app.models.models import Department
+from sqlalchemy import text
+from app.models.models import Department, User
+from app.utils.security import get_password_hash
 
 # Create Database tables
 Base.metadata.create_all(bind=engine)
 
-# Seed initial departments if empty
+# Database migration check & seeding
 db = SessionLocal()
 try:
+    # Ensure column is_active exists if database table pre-existed
+    try:
+        db.execute(text("SELECT is_active FROM users LIMIT 1"))
+    except Exception:
+        db.rollback()
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    # Seed initial departments if empty
     if db.query(Department).count() == 0:
         departments = [
             Department(
@@ -41,6 +55,20 @@ try:
             ),
         ]
         db.add_all(departments)
+        db.commit()
+
+    # Seed bootstrap admin user if not existing
+    admin_user = db.query(User).filter(User.email == settings.ADMIN_EMAIL).first()
+    if not admin_user:
+        hashed_password = get_password_hash(settings.ADMIN_PASSWORD)
+        db_admin = User(
+            email=settings.ADMIN_EMAIL,
+            password_hash=hashed_password,
+            full_name=settings.ADMIN_FULL_NAME,
+            role="admin",
+            is_active=True
+        )
+        db.add(db_admin)
         db.commit()
 finally:
     db.close()

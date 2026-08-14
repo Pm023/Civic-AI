@@ -7,7 +7,7 @@ export const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'citizen' | 'officer'>('citizen');
+  // const [role, setRole] = useState<'citizen' | 'officer'>('citizen');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +24,6 @@ export const Register: React.FC = () => {
           email,
           full_name: fullName,
           password,
-          role,
         }),
       });
 
@@ -105,7 +104,7 @@ export const Register: React.FC = () => {
               </div>
             </div>
 
-            <div>
+            {/* <div>
               <label className="text-xs font-semibold text-slate-400 mb-2 block">Account Role</label>
               <div className="grid grid-cols-2 gap-4">
                 <button
@@ -131,10 +130,15 @@ export const Register: React.FC = () => {
                   Field Officer
                 </button>
               </div>
-            </div>
-          </div>
+            </div> */}
 
+          </div>
+          <div className="rounded-lg bg-slate-950 border border-slate-800 p-3 text-sm text-slate-400">
+            New registrations are created as <span className="text-accent-teal font-semibold">Citizen</span> accounts.
+            Field Officers are created only by the System Admin.
+          </div>
           <div>
+
             <button
               type="submit"
               disabled={loading}

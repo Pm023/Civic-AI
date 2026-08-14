@@ -10,6 +10,7 @@ import { MyReports } from './pages/MyReports';
 import { Track } from './pages/Track';
 import { OfficerCases } from './pages/OfficerCases';
 import { OfficerCaseDetails } from './pages/OfficerCaseDetails';
+import { AdminOfficerManagement } from './pages/AdminOfficerManagement';
 
 const App: React.FC = () => {
   return (
@@ -28,6 +29,8 @@ const App: React.FC = () => {
               <Route path="/track/:ticketId" element={<Track />} />
               <Route path="/officer/cases" element={<OfficerCases />} />
               <Route path="/officer/cases/:id" element={<OfficerCaseDetails />} />
+              <Route path="/admin/officers" element={<AdminOfficerManagement />} />
+              <Route path="/admin" element={<Navigate to="/admin/officers" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </main>
