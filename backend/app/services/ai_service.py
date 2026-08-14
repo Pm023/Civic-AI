@@ -301,14 +301,17 @@ class AIService:
             # Check the top 3 predictions
             for i in range(3):
                 idx = top5_catid[i].item()
+                prob = top5_prob[i].item()
                 cat_name = self._imagenet_categories[idx].lower()
                 
-                # Split category name into words and match against blacklist
-                words = re.findall(r"\b[a-z]{3,15}\b", cat_name)
-                for w in words:
-                    if w in BLACKLIST_KEYWORDS:
-                        logger.warning(f"Image rejected as OOD. Matched blacklisted category: {cat_name}")
-                        return False, cat_name
+                # Only reject if the prediction confidence is meaningful (>= 20%)
+                if prob >= 0.20:
+                    # Split category name into words and match against blacklist
+                    words = re.findall(r"\b[a-z]{3,15}\b", cat_name)
+                    for w in words:
+                        if w in BLACKLIST_KEYWORDS:
+                            logger.warning(f"Image rejected as OOD. Matched blacklisted category: {cat_name} ({prob*100:.1f}%)")
+                            return False, cat_name
                         
             return True, None
         except Exception as e:

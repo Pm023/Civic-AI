@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Camera, MapPin, Send, X } from 'lucide-react';
+import { Camera, MapPin, Send, X, Video, Image as ImageIcon } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -67,6 +67,13 @@ export const Report: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
   
+  // Camera capture states & refs
+  const [uploadMode, setUploadMode] = useState<'upload' | 'camera'>('upload');
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -120,6 +127,69 @@ export const Report: React.FC = () => {
       setError("Geolocation is not supported by your browser.");
     }
   };
+
+  const startCamera = async () => {
+    setError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      setCameraStream(stream);
+      setIsCameraActive(true);
+    } catch (err: any) {
+      console.error("Camera access failed:", err);
+      setError("Failed to access camera. Please ensure permissions are granted.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const capturedFile = new File([blob], `camera_capture_${Date.now()}.jpg`, {
+              type: 'image/jpeg'
+            });
+            setFile(capturedFile);
+            setPreview(URL.createObjectURL(capturedFile));
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.95);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isCameraActive && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [isCameraActive, cameraStream]);
+
+  // Clean up camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -257,30 +327,106 @@ export const Report: React.FC = () => {
               accept="image/*"
               className="hidden"
             />
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-800 hover:border-slate-700 bg-slate-950/50 rounded-xl p-8 text-center cursor-pointer transition-all relative overflow-hidden min-h-[160px] flex flex-col justify-center items-center"
-            >
-              {preview ? (
-                <>
-                  <img src={preview} alt="Preview" className="max-h-[140px] rounded-lg object-contain" />
-                  <button
-                    type="button"
-                    onClick={handleRemoveFile}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-950/80 hover:bg-rose-600 border border-slate-800 hover:border-rose-500 text-white transition-all shadow-md"
-                    title="Remove Image"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Camera className="h-8 w-8 text-slate-500 mx-auto mb-2" />
-                  <span className="text-sm text-slate-400 font-medium">Click to select or drop image here</span>
-                  <p className="text-xs text-slate-600 mt-1">PNG, JPG or WEBP (Max 5MB)</p>
-                </>
-              )}
-            </div>
+            
+            {/* Mode selection tabs - only show if there is no preview */}
+            {!preview && (
+              <div className="flex gap-2 mb-3 bg-slate-950 p-1 rounded-xl border border-slate-800 self-start inline-flex">
+                <button
+                  type="button"
+                  onClick={() => { setUploadMode('upload'); stopCamera(); }}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    uploadMode === 'upload'
+                      ? 'bg-accent-blue text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Upload Image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('camera')}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    uploadMode === 'camera'
+                      ? 'bg-accent-blue text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Video className="h-3.5 w-3.5" />
+                  Use Camera
+                </button>
+              </div>
+            )}
+
+            {preview ? (
+              <div className="relative border border-slate-800 bg-slate-950 rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px]">
+                <img src={preview} alt="Preview" className="max-h-[200px] rounded-lg object-contain" />
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 hover:bg-rose-600 border border-slate-800 hover:border-rose-500 text-white transition-all shadow-md"
+                  title="Remove Image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : uploadMode === 'upload' ? (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-800 hover:border-slate-700 bg-slate-950/50 rounded-xl p-8 text-center cursor-pointer transition-all min-h-[160px] flex flex-col justify-center items-center"
+              >
+                <Camera className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+                <span className="text-sm text-slate-400 font-medium">Click to select or drop image here</span>
+                <p className="text-xs text-slate-600 mt-1">PNG, JPG or WEBP (Max 5MB)</p>
+              </div>
+            ) : (
+              <div className="border border-slate-800 bg-slate-950/50 rounded-xl p-4 text-center min-h-[160px] flex flex-col justify-center items-center relative overflow-hidden">
+                <canvas ref={canvasRef} className="hidden" />
+                
+                {isCameraActive ? (
+                  <div className="w-full flex flex-col items-center">
+                    <div className="w-full max-w-md aspect-video bg-black rounded-lg overflow-hidden relative border border-slate-850">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        type="button"
+                        onClick={capturePhoto}
+                        className="bg-rose-600 hover:bg-rose-500 text-white border border-rose-500 font-semibold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        Capture Shutter
+                      </button>
+                      <button
+                        type="button"
+                        onClick={stopCamera}
+                        className="bg-slate-850 hover:bg-slate-800 text-white border border-slate-750 font-semibold px-4 py-2 rounded-xl text-xs transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-6">
+                    <Video className="h-8 w-8 text-slate-500 mb-2" />
+                    <span className="text-sm text-slate-400 font-medium mb-4">Click below to activate your camera feed</span>
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="bg-accent-blue hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                      Start Video Feed
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Description */}
