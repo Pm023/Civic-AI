@@ -87,7 +87,18 @@ def create_report(
         image_bytes=image_bytes
     )
 
-    # 2. Check if image prediction class matches dataset and has confidence >= 70%
+    # 2. Check if the image matches our out-of-distribution (OOD) blacklist
+    if not ai_res.get("image_allowed", True):
+        matched_class = ai_res.get("image_matched_class", "unrelated object")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Application rejected: Uploaded image contains an unrelated or forbidden category ({matched_class}). "
+                "Please upload a clear photo related directly to municipal civic issues (garbage, pothole, road damage, road sign, or vandalism)."
+            )
+        )
+
+    # 3. Check if image prediction class matches dataset and has confidence >= 70%
     image_category = ai_res.get("image_prediction")
     image_confidence = ai_res.get("image_confidence", 0.0)
     valid_categories = ['garbage', 'pothole', 'road_damage', 'road_sign', 'vandalism']
