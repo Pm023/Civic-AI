@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import Report, User, StatusHistory, Feedback, AIPrediction
+from app.models.models import Report, User, StatusHistory, Feedback, AIPrediction, MasterCase
 from app.schemas.schemas import (
     ReportCreate, ReportResponse, ReportStatusUpdate,
     ReportFeedbackCreate, ReportAssignRequest
@@ -14,11 +14,14 @@ from app.schemas.schemas import (
 from app.api.deps import get_current_user, get_current_officer
 from app.config import settings
 from app.services.ai_service import ai_service
+from app.services.ai.pipeline import run_ai_pipeline
 
 router = APIRouter()
 
+
 def generate_ticket_id() -> str:
     return f"CIV-{uuid.uuid4().hex[:8].upper()}"
+
 
 @router.post("/upload")
 def upload_file(
@@ -53,13 +56,16 @@ def upload_file(
     # Return the static URL
     return {"image_url": f"/uploads/{filename}"}
 
-@router.post("", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
-def create_report(
+
+def _create_report_mock_flow(
     report_in: ReportCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    # 1. Enforce that image_url is mandatory
+    db: Session,
+    current_user: User
+) -> Report:
+    """
+    Existing placeholder/mock creation flow maintained when settings.MOCK_AI is True.
+    """
+    # 1. Enforce that image_url is mandatory for mock/existing flow
     if not report_in.image_url:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,7 +93,7 @@ def create_report(
         image_bytes=image_bytes
     )
 
-    # 2. Check if the image matches our out-of-distribution (OOD) blacklist
+    # Check if the image matches our out-of-distribution (OOD) blacklist
     if not ai_res.get("image_allowed", True):
         matched_class = ai_res.get("image_matched_class", "unrelated object")
         raise HTTPException(
@@ -98,7 +104,7 @@ def create_report(
             )
         )
 
-    # 3. Check if image prediction class matches dataset and has confidence >= 70%
+    # Check if image prediction class matches dataset and has confidence >= 70%
     image_category = ai_res.get("image_prediction")
     image_confidence = ai_res.get("image_confidence", 0.0)
     valid_categories = ['garbage', 'pothole', 'road_damage', 'road_sign', 'vandalism']
@@ -172,6 +178,148 @@ def create_report(
     
     return db_report
 
+
+@router.post("", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
+def create_report(
+    report_in: ReportCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if settings.MOCK_AI:
+        return _create_report_mock_flow(report_in, db, current_user)
+
+    # Real NLP Pipeline Execution
+    ticket_id = generate_ticket_id()
+
+    # 1. Execute end-to-end NLP pipeline BEFORE inserting report
+    pipeline_res = run_ai_pipeline(
+        db=db,
+        description=report_in.description,
+        latitude=report_in.latitude,
+        longitude=report_in.longitude
+    )
+
+    dup_info = pipeline_res.get("duplicate_check", {})
+    is_duplicate = dup_info.get("is_duplicate", False)
+    matched_report_id = dup_info.get("matched_report_id")
+
+    duplicate_of_id = None
+    master_case_id = None
+
+    # 2. Check duplicate linkage and MasterCase handling
+    if is_duplicate and matched_report_id is not None:
+        matched_report = db.query(Report).filter(Report.id == matched_report_id).first()
+        if matched_report:
+            duplicate_of_id = matched_report.id
+            if matched_report.master_case_id:
+                master_case_id = matched_report.master_case_id
+            else:
+                # Create a new MasterCase and link original report
+                new_mc = MasterCase(
+                    ticket_id=f"MC-{uuid.uuid4().hex[:8].upper()}",
+                    category=matched_report.category,
+                    status=matched_report.status,
+                    priority_level=matched_report.priority_level
+                )
+                db.add(new_mc)
+                db.flush()
+                matched_report.master_case_id = new_mc.id
+                master_case_id = new_mc.id
+
+    # 3. Create Report row in a single insert with all pipeline fields
+    db_report = Report(
+        ticket_id=ticket_id,
+        citizen_id=current_user.id,
+        image_url=report_in.image_url,
+        description=report_in.description,
+        latitude=report_in.latitude,
+        longitude=report_in.longitude,
+        category=pipeline_res["category"],
+        ai_confidence=pipeline_res["confidence"],
+        severity=pipeline_res["severity"],
+        priority_score=pipeline_res["priority_score"],
+        priority_level=pipeline_res["priority_level"],
+        duplicate_of=duplicate_of_id,
+        master_case_id=master_case_id,
+        department=pipeline_res["department"],
+        sla_hours=pipeline_res["sla_hours"],
+        status="assigned" if pipeline_res["department"] else "submitted"
+    )
+
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+
+    # 4. Save AIPrediction entry
+    ai_prediction_entry = AIPrediction(
+        report_id=db_report.id,
+        category=pipeline_res["category"],
+        confidence=pipeline_res["confidence"],
+        severity=pipeline_res["severity"],
+        keywords=pipeline_res["keywords"],
+        location_context=pipeline_res["location_context"],
+        image_prediction=None,
+        text_prediction=pipeline_res["text_prediction"]
+    )
+    db.add(ai_prediction_entry)
+
+    # 5. Save StatusHistory entries
+    history_initial = StatusHistory(
+        report_id=db_report.id,
+        status="submitted",
+        notes="Report submitted by citizen.",
+        changed_by_user_id=current_user.id
+    )
+    db.add(history_initial)
+
+    if duplicate_of_id:
+        history_dup = StatusHistory(
+            report_id=db_report.id,
+            status="submitted",
+            notes=f"Flagged as duplicate of Report #{duplicate_of_id} (Master Case #{master_case_id}).",
+            changed_by_user_id=current_user.id
+        )
+        db.add(history_dup)
+
+    if db_report.department:
+        history_assign = StatusHistory(
+            report_id=db_report.id,
+            status="assigned",
+            notes=f"Auto-routed to {db_report.department} (Priority: {db_report.priority_level}, SLA: {db_report.sla_hours}h).",
+            changed_by_user_id=current_user.id
+        )
+        db.add(history_assign)
+
+    db.commit()
+    db.refresh(db_report)
+
+    return db_report
+
+
+@router.get("/duplicates", response_model=List[ReportResponse])
+def get_duplicate_reports(
+    master_case_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns all reports flagged as duplicates (duplicate_of is not null).
+    Officers see all duplicates; citizens see only their own.
+    Optionally filter by master_case_id.
+    """
+    query = db.query(Report).filter(Report.duplicate_of.isnot(None))
+
+    if current_user.role == "citizen":
+        query = query.filter(Report.citizen_id == current_user.id)
+
+    if master_case_id is not None:
+        query = query.filter(Report.master_case_id == master_case_id)
+
+    return query.order_by(Report.created_at.desc()).offset(skip).limit(limit).all()
+
+
 @router.get("", response_model=List[ReportResponse])
 def read_reports(
     status: Optional[str] = None,
@@ -201,6 +349,7 @@ def read_reports(
     reports = query.order_by(Report.created_at.desc()).offset(skip).limit(limit).all()
     return reports
 
+
 @router.get("/{id_or_ticket}", response_model=ReportResponse)
 def read_report(
     id_or_ticket: str,
@@ -229,6 +378,7 @@ def read_report(
         )
         
     return report
+
 
 @router.patch("/{id}/status", response_model=ReportResponse)
 def update_report_status(
@@ -268,6 +418,7 @@ def update_report_status(
     
     return report
 
+
 @router.post("/{id}/assign", response_model=ReportResponse)
 def assign_report(
     id: int,
@@ -301,6 +452,7 @@ def assign_report(
     db.commit()
     
     return report
+
 
 @router.post("/{id}/feedback", response_model=ReportResponse)
 def submit_feedback(

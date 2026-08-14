@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     
     # Duplicate Detection
     DUPLICATE_RADIUS_METERS: float = 100.0
-    DUPLICATE_SIMILARITY_THRESHOLD: float = 0.85
+    DUPLICATE_SIMILARITY_THRESHOLD: float = 0.65
     
     class Config:
         env_file = ".env"

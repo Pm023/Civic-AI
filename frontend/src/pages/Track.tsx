@@ -160,7 +160,7 @@ export const Track: React.FC = () => {
       </div>
 
       {/* AI Category and Confidence Alert Banner */}
-      <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl mb-8 flex items-center justify-between shadow-md relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-900 to-accent-teal/5">
+      <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl mb-6 flex items-center justify-between shadow-md relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-900 to-accent-teal/5">
         <div className="absolute top-0 right-0 w-32 h-32 bg-accent-teal/5 rounded-full blur-xl" />
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-accent-teal/10 border border-accent-teal/20 text-accent-teal">
@@ -180,6 +180,55 @@ export const Track: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Duplicate Detection Result Banner */}
+      {report.duplicate_of != null ? (
+        <div className="mb-6 p-5 rounded-2xl border border-rose-500/30 bg-rose-500/5 shadow-md relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-transparent pointer-events-none rounded-2xl" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 shrink-0">
+                <svg className="h-5 w-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-rose-300">⚠ Duplicate Complaint Detected</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  This report was flagged as a duplicate of an existing active complaint.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 sm:ml-auto shrink-0">
+              <div className="bg-slate-900 border border-rose-500/20 rounded-lg px-3 py-2 text-center min-w-[90px]">
+                <span className="text-[10px] text-slate-500 block uppercase tracking-wider">Linked To</span>
+                <span className="text-sm font-bold text-rose-300 font-mono">Report #{report.duplicate_of}</span>
+              </div>
+              {report.master_case_id && (
+                <div className="bg-slate-900 border border-rose-500/20 rounded-lg px-3 py-2 text-center min-w-[90px]">
+                  <span className="text-[10px] text-slate-500 block uppercase tracking-wider">Master Case</span>
+                  <span className="text-sm font-bold text-amber-400 font-mono">MC-{report.master_case_id}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-3 italic">
+            Your complaint has been merged with an existing master case for joint resolution. You will receive updates as the case progresses.
+          </p>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+            <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-xs font-bold text-emerald-400">No Duplicate Found</span>
+            <p className="text-[11px] text-slate-500 mt-0.5">This is a unique complaint — no similar active reports were found nearby.</p>
+          </div>
+        </div>
+      )}
 
       {/* Visual Case Timeline */}
       <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-2xl mb-8">

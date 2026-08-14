@@ -97,6 +97,14 @@ class AIVerifyRequest(BaseModel):
     longitude: float
     image_url: Optional[str] = None
 
+class DuplicateCheckResult(BaseModel):
+    is_duplicate: bool
+    matched_report_id: Optional[int] = None
+    matched_complaint_text: Optional[str] = None
+    distance_meters: Any = None
+    score: float = 0.0
+    new_complaint_category: Optional[str] = None
+
 class AIPredictionResponse(BaseModel):
     category: str
     confidence: float
@@ -105,6 +113,11 @@ class AIPredictionResponse(BaseModel):
     location_context: List[str] = []
     image_prediction: Optional[str] = None
     text_prediction: Optional[str] = None
+    duplicate_check: Optional[DuplicateCheckResult] = None
+    priority_score: Optional[float] = None
+    priority_level: Optional[str] = None
+    department: Optional[str] = None
+    sla_hours: Optional[int] = None
 
 # Assignment Schema
 class ReportAssignRequest(BaseModel):
