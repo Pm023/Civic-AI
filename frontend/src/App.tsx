@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
@@ -14,10 +15,11 @@ import { OfficerCaseDetails } from './pages/OfficerCaseDetails';
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
-          <Header />
-          <main className="flex-grow">
+      <ThemeProvider>
+        <Router>
+          <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 transition-colors duration-300">
+            <Header />
+            <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -33,6 +35,7 @@ const App: React.FC = () => {
           </main>
         </div>
       </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 };

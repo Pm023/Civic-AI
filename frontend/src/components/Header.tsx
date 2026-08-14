@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, FileText, BarChart2, CheckSquare, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { Shield, FileText, BarChart2, CheckSquare, LogOut, LogIn, UserPlus, Sun, Moon } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -66,6 +68,15 @@ export const Header: React.FC = () => {
 
           {/* User Actions */}
           <div className="flex items-center gap-4">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+            </button>
+
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex flex-col items-end">

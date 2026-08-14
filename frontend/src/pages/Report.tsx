@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Camera, MapPin, Send, X } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -48,6 +49,7 @@ const LocationMarker = ({
 
 export const Report: React.FC = () => {
   const { user, token } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   
   // Redirect officers away from this page
@@ -372,9 +374,11 @@ export const Report: React.FC = () => {
                 style={{ height: '100%', width: '100%' }}
               >
                 <RecenterMap center={[parseFloat(latitude) || 19.0760, parseFloat(longitude) || 72.8777]} />
-                <TileLayer
+                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  url={theme === 'light'
+                    ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"}
                 />
                 <LocationMarker 
                   lat={parseFloat(latitude) || 19.0760} 

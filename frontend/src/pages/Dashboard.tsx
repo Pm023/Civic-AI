@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
@@ -45,6 +46,7 @@ const RecenterMap: React.FC<{ center: [number, number] }> = ({ center }) => {
 
 export const Dashboard: React.FC = () => {
   const { user, token, isAuthenticated } = useAuth();
+  const { theme } = useTheme();
   
   // Dashboard stats state
   const [stats, setStats] = useState({
@@ -361,7 +363,9 @@ export const Dashboard: React.FC = () => {
                 <RecenterMap center={mapCenter} />
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  url={theme === 'light'
+                    ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"}
                 />
                 {isAuthenticated && user?.role === 'officer' && validPoints.map((pt) => (
                   <Marker key={pt.id} position={[pt.latitude, pt.longitude]} icon={getMarkerIcon(pt.priority_level)}>
