@@ -25,3 +25,9 @@ logs/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Project-specific ignores
+test_image.jpg
+uploads/
+backend/app/civicai_best/
+*.zip

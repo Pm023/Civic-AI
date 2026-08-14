@@ -54,7 +54,7 @@ def test_auth_and_report_flow(client):
     report_data = report_response.json()
     assert report_data["description"] == "Large pothole in the middle of Main St."
     assert report_data["category"] == "pothole"
-    assert report_data["status"] == "submitted"
+    assert report_data["status"] in ("submitted", "assigned")
     assert "ticket_id" in report_data
     report_id = report_data["id"]
 

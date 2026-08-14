@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: set = {"png", "jpg", "jpeg", "webp"}
     
     # AI Settings
-    MOCK_AI: bool = True
-    IMAGE_MODEL_PATH: str = "models/image_classifier/best.pt"
+    MOCK_AI: bool = False
+    IMAGE_MODEL_PATH: str = str(BASE_DIR / "backend" / "app" / "civicai_best.zip")
     TEXT_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
     
     # Duplicate Detection

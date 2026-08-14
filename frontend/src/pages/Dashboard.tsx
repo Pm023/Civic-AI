@@ -343,7 +343,9 @@ export const Dashboard: React.FC = () => {
               GIS Map Visualizer
             </h2>
             <span className="text-xs text-accent-teal font-semibold px-2 py-0.5 rounded bg-accent-teal/10 border border-accent-teal/20 animate-pulse">
-              Live Map Connected ({mapPoints.length} points)
+              {isAuthenticated && user?.role === 'officer'
+                ? `Live Map Connected (${mapPoints.length} points)`
+                : 'Municipal GIS Console'}
             </span>
           </div>
           <div className="flex-1 bg-slate-950 min-h-[430px] relative z-10">
@@ -361,7 +363,7 @@ export const Dashboard: React.FC = () => {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                   url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
-                {validPoints.map((pt) => (
+                {isAuthenticated && user?.role === 'officer' && validPoints.map((pt) => (
                   <Marker key={pt.id} position={[pt.latitude, pt.longitude]} icon={getMarkerIcon(pt.priority_level)}>
                     <Popup>
                       <div className="text-slate-900 font-sans p-1">
@@ -372,15 +374,9 @@ export const Dashboard: React.FC = () => {
                         <p className="text-xs font-semibold text-slate-700 uppercase">Category: {pt.category}</p>
                         <p className="text-xs text-slate-600 mt-1 max-w-[200px] line-clamp-2">{pt.description}</p>
                         <div className="mt-2 text-right">
-                          {user?.role === 'officer' ? (
-                            <Link to={`/officer/cases/${pt.id}`} className="text-xs text-blue-600 hover:underline font-semibold block">
-                              Inspect Case &rarr;
-                            </Link>
-                          ) : (
-                            <Link to={`/track/${pt.ticket_id}`} className="text-xs text-teal-600 hover:underline font-semibold block">
-                              Track Status &rarr;
-                            </Link>
-                          )}
+                          <Link to={`/officer/cases/${pt.id}`} className="text-xs text-blue-600 hover:underline font-semibold block">
+                            Inspect Case &rarr;
+                          </Link>
                         </div>
                       </div>
                     </Popup>

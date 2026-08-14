@@ -1,20 +1,57 @@
+import os
+import shutil
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import Report, User, StatusHistory, Feedback
+from app.models.models import Report, User, StatusHistory, Feedback, AIPrediction
 from app.schemas.schemas import (
     ReportCreate, ReportResponse, ReportStatusUpdate,
     ReportFeedbackCreate, ReportAssignRequest
 )
 from app.api.deps import get_current_user, get_current_officer
+from app.config import settings
+from app.services.ai_service import ai_service
 
 router = APIRouter()
 
 def generate_ticket_id() -> str:
     return f"CIV-{uuid.uuid4().hex[:8].upper()}"
+
+@router.post("/upload")
+def upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    # Ensure it's an image
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed."
+        )
+        
+    # Generate unique filename
+    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(settings.UPLOAD_DIR, filename)
+    
+    # Ensure uploads directory exists
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    
+    # Save the file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Could not save file: {str(e)}"
+        )
+        
+    # Return the static URL
+    return {"image_url": f"/uploads/{filename}"}
 
 @router.post("", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
 def create_report(
@@ -24,25 +61,59 @@ def create_report(
 ):
     ticket_id = generate_ticket_id()
     
-    db_report = Report(
-        ticket_id=ticket_id,
-        citizen_id=current_user.id,
+    # Check if there is an image, load it to get prediction
+    image_bytes = None
+    if report_in.image_url:
+        filename = os.path.basename(report_in.image_url)
+        local_path = os.path.join(settings.UPLOAD_DIR, filename)
+        if os.path.exists(local_path):
+            try:
+                with open(local_path, "rb") as f:
+                    image_bytes = f.read()
+            except Exception:
+                pass
+
+    # Call AI verification service
+    ai_res = ai_service.verify_complaint(
         description=report_in.description,
         latitude=report_in.latitude,
         longitude=report_in.longitude,
-        category=report_in.category or "other",
-        status="submitted",
-        # Default placeholder values for Phase 1; AI verification & routing will populate these in later phases
-        ai_confidence=0.0,
-        severity="LOW",
-        priority_score=0.0,
-        priority_level="LOW",
-        sla_hours=48,
+        image_bytes=image_bytes
+    )
+
+    db_report = Report(
+        ticket_id=ticket_id,
+        citizen_id=current_user.id,
+        image_url=report_in.image_url,
+        description=report_in.description,
+        latitude=report_in.latitude,
+        longitude=report_in.longitude,
+        category=ai_res["category"],
+        ai_confidence=ai_res["confidence"],
+        severity=ai_res["severity"],
+        priority_score=ai_res["priority_score"],
+        priority_level=ai_res["priority_level"],
+        department=ai_res["department"],
+        sla_hours=ai_res["sla_hours"],
+        status="assigned" if ai_res["department"] else "submitted"
     )
     
     db.add(db_report)
     db.commit()
     db.refresh(db_report)
+    
+    # Save the AI Prediction details
+    ai_prediction_entry = AIPrediction(
+        report_id=db_report.id,
+        category=ai_res["category"],
+        confidence=ai_res["confidence"],
+        severity=ai_res["severity"],
+        keywords=ai_res["keywords"],
+        location_context=ai_res["location_context"],
+        image_prediction=ai_res["image_prediction"],
+        text_prediction=ai_res["text_prediction"]
+    )
+    db.add(ai_prediction_entry)
     
     # Write initial history status
     history = StatusHistory(
@@ -52,7 +123,19 @@ def create_report(
         changed_by_user_id=current_user.id
     )
     db.add(history)
+    
+    # Log auto-routed assignment status history
+    if db_report.department:
+        history_assign = StatusHistory(
+            report_id=db_report.id,
+            status="assigned",
+            notes=f"Auto-routed to {db_report.department} (Priority: {db_report.priority_level}, SLA: {db_report.sla_hours}h).",
+            changed_by_user_id=current_user.id
+        )
+        db.add(history_assign)
+        
     db.commit()
+    db.refresh(db_report)
     
     return db_report
 

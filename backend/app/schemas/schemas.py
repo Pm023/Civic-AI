@@ -38,6 +38,7 @@ class ReportCreate(BaseModel):
     latitude: float
     longitude: float
     category: Optional[str] = "other"  # Can be selected or set to 'other' initially
+    image_url: Optional[str] = None
 
 class ReportStatusUpdate(BaseModel):
     status: str  # "submitted", "verified", "assigned", "in_progress", "resolved"

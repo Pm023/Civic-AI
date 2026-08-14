@@ -159,6 +159,28 @@ export const Track: React.FC = () => {
         </div>
       </div>
 
+      {/* AI Category and Confidence Alert Banner */}
+      <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl mb-8 flex items-center justify-between shadow-md relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-900 to-accent-teal/5">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-accent-teal/5 rounded-full blur-xl" />
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-accent-teal/10 border border-accent-teal/20 text-accent-teal">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">AI Classification Verified</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              This complaint has been identified as <strong className="text-accent-teal capitalize">{report.category}</strong> with a <strong className="text-white">{(report.ai_confidence * 100).toFixed(0)}% confidence score</strong>.
+            </p>
+          </div>
+        </div>
+        <div className="hidden sm:block text-right">
+          <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">Severity Status</span>
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-accent-amber/10 border border-accent-amber/20 text-accent-amber capitalize mt-1 inline-block">
+            {report.severity.toLowerCase()}
+          </span>
+        </div>
+      </div>
+
       {/* Visual Case Timeline */}
       <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-2xl mb-8">
         <h2 className="text-md font-semibold text-white mb-6">Case Progression Timeline</h2>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, Clock, ShieldAlert } from 'lucide-react';
 
@@ -14,10 +14,18 @@ interface ReportData {
 }
 
 export const MyReports: React.FC = () => {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [reports, setReports] = useState<ReportData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Redirect officers away from this page
+  useEffect(() => {
+    if (user && user.role === 'officer') {
+      navigate('/officer/cases');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchMyReports = async () => {
